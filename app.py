@@ -829,7 +829,7 @@ def login():
 
 
 # -----------------------
-# OPTIONAL: SEPARATE ADMIN LOGIN PAGE
+# SEPARATE ADMIN LOGIN PAGE
 # -----------------------
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
