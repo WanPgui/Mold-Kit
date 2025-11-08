@@ -1,6 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, status
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 import os
 from typing import Optional
 import uvicorn
