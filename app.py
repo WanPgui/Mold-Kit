@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, status
+from fastapi import FastAPI, File, UploadFile, HTTPException, status, Form
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 import os
@@ -8,6 +8,7 @@ from PIL import Image
 import numpy as np
 import tensorflow as tf
 from io import BytesIO
+import requests
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -20,6 +21,7 @@ app = FastAPI(
 ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp'}
 MAX_FILE_SIZE = 8 * 1024 * 1024  # 8MB
 MODEL_PATH = "models/mold_model_final.keras"
+OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "d6159ecc80513ec0218d61d4285e2d52")
 
 # Load model - REQUIRED
 if not os.path.exists(MODEL_PATH):
@@ -34,6 +36,9 @@ class PredictionResponse(BaseModel):
     prediction: str
     confidence: float
     confidence_display: str
+    risk_status: str
+    weather: str
+    risk_score: int
     message: str
 
 class HealthResponse(BaseModel):
@@ -84,9 +89,15 @@ async def health_check():
     )
 
 @app.post("/predict", response_model=PredictionResponse)
-async def predict_mold_endpoint(file: UploadFile = File(...)):
+async def predict_mold_endpoint(
+    file: UploadFile = File(...),
+    location: str = Form(""),
+    ventilation: str = Form("moderate"),
+    leak: str = Form("no"),
+    health: str = Form("no")
+):
     """
-    Upload an image and get mold detection prediction
+    Upload an image and get comprehensive mold risk assessment
     """
     # Validate file
     if not file.filename:
@@ -114,12 +125,57 @@ async def predict_mold_endpoint(file: UploadFile = File(...)):
         # Make prediction
         label, confidence, confidence_display = predict_mold(content, file.filename)
         
+        # Environmental risk assessment
+        weather_data = "No location provided"
+        humidity = None
+        
+        if location.strip():
+            try:
+                res = requests.get(
+                    "https://api.openweathermap.org/data/2.5/weather",
+                    params={"q": location, "appid": OPENWEATHER_API_KEY, "units": "metric"},
+                    timeout=4
+                )
+                data = res.json()
+                if res.ok and "main" in data:
+                    temperature = data["main"].get("temp")
+                    humidity = data["main"].get("humidity")
+                    weather_data = f"{temperature}°C, {humidity}% humidity"
+                else:
+                    weather_data = "Invalid location"
+            except Exception:
+                weather_data = "Weather fetch error"
+        
+        # Risk score calculation
+        ventilation_risk = {"poor": 2, "moderate": 1, "good": 0}
+        risk_score = ventilation_risk.get(ventilation.lower(), 1)
+        
+        if leak.lower() == "yes":
+            risk_score += 2
+        if humidity is not None:
+            risk_score += 2 if humidity > 70 else (1 if humidity > 50 else 0)
+        if health.lower() == "yes":
+            risk_score += 1
+        
+        # Final status
+        if label == "mold" and risk_score >= 3:
+            risk_status = "high"
+        elif label == "mold":
+            risk_status = "moderate"
+        elif risk_score <= 2:
+            risk_status = "safe"
+        else:
+            risk_status = "high"
+        
         return PredictionResponse(
             filename=file.filename,
             prediction=label,
             confidence=confidence,
             confidence_display=confidence_display,
-            message=f"Prediction completed successfully. Result: {label} ({confidence_display})"
+            risk_status=risk_status,
+            weather=weather_data,
+            risk_score=risk_score,
+            message=f"Risk assessment complete. Mold: {label} ({confidence_display}), Risk: {risk_status}"
         )
         
     except Exception as e:
