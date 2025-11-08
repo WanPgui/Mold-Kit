@@ -105,14 +105,7 @@ class MoldPredict(Resource):
         except Exception as e:
             api.abort(500, f"Processing error: {str(e)}")
 
-# Legacy endpoints for backward compatibility
-@app.route('/')
-def root():
-    return {
-        "message": "Mold Detection API",
-        "swagger_ui": "/swagger/",
-        "api_prefix": "/api"
-    }
+# Root redirect handled by Flask-RESTX automatically
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
