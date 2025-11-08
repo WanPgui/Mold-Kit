@@ -3,8 +3,8 @@ services:
     name: mold-prediction-tool
     env: python
     plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app"
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "gunicorn app_api:app --bind 0.0.0.0:$PORT"
     envVars:
       - key: SECRET_KEY
         sync: false
