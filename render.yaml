@@ -4,13 +4,13 @@ services:
     env: python
     plan: free
     buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
-    startCommand: "gunicorn app_api:app --bind 0.0.0.0:$PORT"
+    startCommand: "gunicorn app_api:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: SECRET_KEY
-        sync: false
+        value: "mold_kit_secret_key_2024"
       - key: OPENWEATHER_API_KEY
-        sync: false
+        value: "d6159ecc80513ec0218d61d4285e2d52"
       - key: ADMIN_PASSWORD
-        sync: false
+        value: "moldadminpass"
       - key: UPLOAD_FOLDER
-        value: uploads
+        value: "uploads"
