@@ -131,6 +131,4 @@ async def request_entity_too_large_handler(request, exc):
         content={"detail": "File too large. Maximum size is 8MB"}
     )
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
+# Remove the if __name__ block for production deployment
