@@ -21,17 +21,12 @@ ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp'}
 MAX_FILE_SIZE = 8 * 1024 * 1024  # 8MB
 MODEL_PATH = "models/mold_model_final.keras"
 
-# Load model
-MODEL = None
-try:
-    if os.path.exists(MODEL_PATH):
-        MODEL = tf.keras.models.load_model(MODEL_PATH, compile=False)
-        print(f"✓ Model loaded from {MODEL_PATH}")
-    else:
-        print(f"✗ Model file not found at {MODEL_PATH}")
-except Exception as e:
-    print(f"✗ Error loading model: {e}")
-    MODEL = None
+# Load model - REQUIRED
+if not os.path.exists(MODEL_PATH):
+    raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
+
+MODEL = tf.keras.models.load_model(MODEL_PATH, compile=False)
+print(f"✓ Model loaded from {MODEL_PATH}")
 
 # Response models
 class PredictionResponse(BaseModel):
@@ -52,41 +47,24 @@ def allowed_file(filename: str) -> bool:
 
 def predict_mold(file_content: bytes, filename: str) -> tuple:
     """
-    Real ML model prediction with fallback
+    Real ML model prediction only
     Returns: (label, confidence_float, confidence_display)
     """
-    try:
-        if MODEL is not None:
-            # Real ML prediction
-            img = Image.open(BytesIO(file_content)).convert("RGB")
-            img = img.resize((224, 224), Image.Resampling.LANCZOS)
-            
-            arr = np.array(img, dtype=np.float32) / 255.0
-            arr = np.expand_dims(arr, axis=0)
-            
-            pred = MODEL.predict(arr, verbose=0).flatten()
-            score = float(np.clip(pred[0], 0.0, 1.0))
-            
-            label = "mold" if score >= 0.5 else "clean"
-            confidence = score if label == "mold" else (1 - score)
-            confidence_display = f"{confidence * 100:.2f}%"
-            
-            return label, confidence, confidence_display
-        
-        # Fallback heuristics if model fails
-        file_size = len(file_content)
-        if 'mold' in filename.lower():
-            return "mold", 0.75, "75.00%"
-        elif 'clean' in filename.lower():
-            return "clean", 0.80, "80.00%"
-        else:
-            confidence = min(0.70, file_size / (1024 * 1024) * 0.2 + 0.5)
-            label = "mold" if confidence > 0.6 else "clean"
-            return label, confidence, f"{confidence * 100:.2f}%"
-        
-    except Exception as e:
-        print(f"Prediction error: {e}")
-        return "unknown", 0.0, "0.00%"
+    # Real ML prediction
+    img = Image.open(BytesIO(file_content)).convert("RGB")
+    img = img.resize((224, 224), Image.Resampling.LANCZOS)
+    
+    arr = np.array(img, dtype=np.float32) / 255.0
+    arr = np.expand_dims(arr, axis=0)
+    
+    pred = MODEL.predict(arr, verbose=0).flatten()
+    score = float(np.clip(pred[0], 0.0, 1.0))
+    
+    label = "mold" if score >= 0.5 else "clean"
+    confidence = score if label == "mold" else (1 - score)
+    confidence_display = f"{confidence * 100:.2f}%"
+    
+    return label, confidence, confidence_display
 
 # Routes
 @app.get("/", response_model=HealthResponse)
