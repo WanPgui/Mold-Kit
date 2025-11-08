@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mold Detection</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .upload-area { border: 2px dashed #ccc; padding: 40px; text-align: center; margin: 20px 0; }
+        .result { margin: 20px 0; padding: 20px; border-radius: 5px; }
+        .mold { background: #ffebee; border-left: 4px solid #f44336; }
+        .clean { background: #e8f5e8; border-left: 4px solid #4caf50; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🔬 Mold Detection Tool</h1>
+    
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <p>Click to upload an image</p>
+        <input type="file" id="fileInput" accept="image/*" style="display:none">
+    </div>
+    
+    <button onclick="predict()">Analyze Image</button>
+    
+    <div id="result"></div>
+
+    <script>
+        const API_URL = 'https://your-app-name.onrender.com'; // Replace with your actual Render URL
+        
+        function predict() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select an image first');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            document.getElementById('result').innerHTML = '<p>Analyzing...</p>';
+            
+            fetch(`${API_URL}/predict`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                if (data.error) {
+                    resultDiv.innerHTML = `<div class="result"><strong>Error:</strong> ${data.error}</div>`;
+                } else {
+                    const className = data.prediction === 'mold' ? 'mold' : 'clean';
+                    resultDiv.innerHTML = `
+                        <div class="result ${className}">
+                            <h3>Result: ${data.prediction.toUpperCase()}</h3>
+                            <p>Confidence: ${data.confidence}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = `<div class="result"><strong>Error:</strong> ${error}</div>`;
+            });
+        }
+    </script>
+</body>
+</html>
