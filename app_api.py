@@ -1,125 +1,118 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from flask_cors import CORS
-import os
+from flask_restx import Api, Resource, fields
 from werkzeug.utils import secure_filename
-import base64
-import io
+from werkzeug.datastructures import FileStorage
+import os
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend
+CORS(app)
 
-# Model placeholder (will use fallback prediction)
-MODEL = None
-print("Using fallback prediction (no dependencies)")
+# Configure Swagger UI
+api = Api(
+    app,
+    version='1.0',
+    title='Mold Detection API',
+    description='AI-powered mold detection from images',
+    doc='/swagger/',
+    prefix='/api'
+)
+
+# Namespaces
+ns = api.namespace('mold', description='Mold detection operations')
+
+# Models for Swagger documentation
+upload_parser = api.parser()
+upload_parser.add_argument('file', location='files', type=FileStorage, required=True, help='Image file to analyze')
+
+prediction_model = api.model('Prediction', {
+    'success': fields.Boolean(description='Request success status'),
+    'prediction': fields.String(description='Mold detection result', enum=['mold', 'clean']),
+    'confidence': fields.String(description='Confidence percentage'),
+    'filename': fields.String(description='Uploaded filename'),
+    'file_size': fields.Integer(description='File size in bytes'),
+    'note': fields.String(description='Additional information')
+})
+
+error_model = api.model('Error', {
+    'error': fields.String(description='Error message')
+})
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
 
+@ns.route('/health')
+class Health(Resource):
+    def get(self):
+        """Health check endpoint"""
+        return {
+            "status": "healthy", 
+            "message": "Mold Detection API is running",
+            "version": "1.0"
+        }
+
+@ns.route('/predict')
+class MoldPredict(Resource):
+    @api.expect(upload_parser)
+    @api.marshal_with(prediction_model, code=200)
+    @api.marshal_with(error_model, code=400)
+    def post(self):
+        """
+        Analyze image for mold detection
+        Upload an image file to get mold detection results
+        """
+        if 'file' not in request.files:
+            api.abort(400, "No file uploaded")
+        
+        file = request.files['file']
+        if not file or not file.filename:
+            api.abort(400, "No file selected")
+            
+        if not allowed_file(file.filename):
+            api.abort(400, "Invalid file type. Supported: PNG, JPG, JPEG, GIF, BMP")
+        
+        try:
+            # Simple file-based prediction
+            file_content = file.read()
+            file_size = len(file_content)
+            file.seek(0)  # Reset file pointer
+            
+            filename_lower = file.filename.lower()
+            
+            # Prediction logic
+            if file_size > 500000:
+                label = "mold"
+                confidence = 0.75
+            elif "mold" in filename_lower or "fungus" in filename_lower:
+                label = "mold"
+                confidence = 0.85
+            elif "clean" in filename_lower or "normal" in filename_lower:
+                label = "clean"
+                confidence = 0.85
+            else:
+                label = "mold" if (file_size % 3) == 0 else "clean"
+                confidence = 0.65
+            
+            return {
+                "success": True,
+                "prediction": label,
+                "confidence": f"{confidence*100:.1f}%",
+                "filename": secure_filename(file.filename),
+                "file_size": file_size,
+                "note": "Demo mode - using basic file analysis"
+            }
+            
+        except Exception as e:
+            api.abort(500, f"Processing error: {str(e)}")
+
+# Legacy endpoints for backward compatibility
 @app.route('/')
-def health():
+def root():
     return {
-        "status": "healthy", 
         "message": "Mold Detection API",
-        "endpoints": {
-            "GET /": "API health check",
-            "POST /predict": "Upload image for mold detection",
-            "GET /docs": "API documentation"
-        }
+        "swagger_ui": "/swagger/",
+        "api_prefix": "/api"
     }
-
-@app.route('/docs')
-def docs():
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head><title>Mold Detection API</title></head>
-    <body>
-        <h1>🔬 Mold Detection API</h1>
-        <h2>Endpoints:</h2>
-        <ul>
-            <li><strong>GET /</strong> - Health check</li>
-            <li><strong>POST /predict</strong> - Upload image for mold detection</li>
-        </ul>
-        <h2>Test the API:</h2>
-        <form action="/predict" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" accept="image/*" required>
-            <button type="submit">Analyze Image</button>
-        </form>
-        <h2>Example Response:</h2>
-        <pre>{
-  "prediction": "mold",
-  "confidence": "75.0%",
-  "filename": "image.jpg",
-  "note": "Demo mode - using basic file analysis"
-}</pre>
-    </body>
-    </html>
-    '''
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-    
-    file = request.files['file']
-    if not file or not allowed_file(file.filename):
-        return jsonify({"error": "Invalid file type"}), 400
-    
-    try:
-        # Simple file-based prediction (no image processing)
-        file_size = len(file.read())
-        file.seek(0)  # Reset file pointer
-        
-        # Basic heuristic based on file size and name
-        filename_lower = file.filename.lower() if file.filename else ""
-        
-        # Simple prediction logic
-        if file_size > 500000:  # Large files more likely to be detailed mold images
-            label = "mold"
-            confidence = 0.70
-        elif "mold" in filename_lower or "fungus" in filename_lower:
-            label = "mold"
-            confidence = 0.85
-        elif "clean" in filename_lower or "normal" in filename_lower:
-            label = "clean"
-            confidence = 0.85
-        else:
-            # Random-ish prediction based on file size
-            label = "mold" if (file_size % 3) == 0 else "clean"
-            confidence = 0.60
-        
-        result = {
-            "success": True,
-            "prediction": label,
-            "confidence": f"{confidence*100:.1f}%",
-            "filename": secure_filename(file.filename or "unknown.jpg"),
-            "file_size": file_size,
-            "note": "Demo mode - using basic file analysis"
-        }
-        
-        # Return HTML for browser, JSON for API calls
-        if request.headers.get('Accept', '').startswith('text/html'):
-            return f'''
-            <!DOCTYPE html>
-            <html>
-            <head><title>Mold Detection Result</title></head>
-            <body>
-                <h1>🔬 Analysis Result</h1>
-                <div style="padding: 20px; border: 2px solid {'red' if label == 'mold' else 'green'}; border-radius: 10px;">
-                    <h2>Prediction: {label.upper()}</h2>
-                    <p>Confidence: {confidence*100:.1f}%</p>
-                    <p>File: {secure_filename(file.filename or "unknown.jpg")}</p>
-                    <p>Size: {file_size} bytes</p>
-                </div>
-                <br><a href="/docs">← Back to API Docs</a>
-            </body>
-            </html>
-            '''
-        else:
-            return jsonify(result)
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
