@@ -17,7 +17,44 @@ def allowed_file(filename):
 
 @app.route('/')
 def health():
-    return {"status": "healthy", "message": "Mold Detection API"}
+    return {
+        "status": "healthy", 
+        "message": "Mold Detection API",
+        "endpoints": {
+            "GET /": "API health check",
+            "POST /predict": "Upload image for mold detection",
+            "GET /docs": "API documentation"
+        }
+    }
+
+@app.route('/docs')
+def docs():
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head><title>Mold Detection API</title></head>
+    <body>
+        <h1>🔬 Mold Detection API</h1>
+        <h2>Endpoints:</h2>
+        <ul>
+            <li><strong>GET /</strong> - Health check</li>
+            <li><strong>POST /predict</strong> - Upload image for mold detection</li>
+        </ul>
+        <h2>Test the API:</h2>
+        <form action="/predict" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept="image/*" required>
+            <button type="submit">Analyze Image</button>
+        </form>
+        <h2>Example Response:</h2>
+        <pre>{
+  "prediction": "mold",
+  "confidence": "75.0%",
+  "filename": "image.jpg",
+  "note": "Demo mode - using basic file analysis"
+}</pre>
+    </body>
+    </html>
+    '''
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -51,12 +88,35 @@ def predict():
             label = "mold" if (file_size % 3) == 0 else "clean"
             confidence = 0.60
         
-        return jsonify({
+        result = {
+            "success": True,
             "prediction": label,
             "confidence": f"{confidence*100:.1f}%",
             "filename": secure_filename(file.filename or "unknown.jpg"),
+            "file_size": file_size,
             "note": "Demo mode - using basic file analysis"
-        })
+        }
+        
+        # Return HTML for browser, JSON for API calls
+        if request.headers.get('Accept', '').startswith('text/html'):
+            return f'''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Mold Detection Result</title></head>
+            <body>
+                <h1>🔬 Analysis Result</h1>
+                <div style="padding: 20px; border: 2px solid {'red' if label == 'mold' else 'green'}; border-radius: 10px;">
+                    <h2>Prediction: {label.upper()}</h2>
+                    <p>Confidence: {confidence*100:.1f}%</p>
+                    <p>File: {secure_filename(file.filename or "unknown.jpg")}</p>
+                    <p>Size: {file_size} bytes</p>
+                </div>
+                <br><a href="/docs">← Back to API Docs</a>
+            </body>
+            </html>
+            '''
+        else:
+            return jsonify(result)
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
