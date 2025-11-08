@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -6,6 +6,8 @@ import numpy as np
 from PIL import Image
 import tensorflow as tf
 from tensorflow.keras.models import load_model
+import requests
+from typing import Optional
 
 app = FastAPI(title="Mold Detection API")
 
@@ -50,18 +52,61 @@ def predict_image(image_bytes):
 async def root():
     return {"message": "Mold Detection API"}
 
+def get_weather(location: str):
+    """Get weather data from OpenWeatherMap API for Kenya"""
+    api_key = os.getenv("OPENWEATHER_API_KEY")
+    if not api_key:
+        return "No weather API key"
+    
+    # Default to Nairobi if no location provided
+    if not location:
+        location = "Nairobi,KE"
+    elif "," not in location:
+        location = f"{location},KE"  # Add Kenya country code
+    
+    try:
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            temp = data["main"]["temp"]
+            humidity = data["main"]["humidity"]
+            city = data["name"]
+            return f"{city}: {temp}°C, {humidity}% humidity"
+        return "Weather unavailable"
+    except:
+        return "Weather unavailable"
+
+def calculate_risk(confidence: float, weather_info: str):
+    """Calculate mold risk based on prediction and weather"""
+    if confidence >= 0.8:
+        return "high", 3
+    elif confidence >= 0.6:
+        return "moderate", 2
+    elif confidence >= 0.4:
+        return "low", 1
+    return "minimal", 0
+
 @app.post("/predict")
-async def predict_mold(file: UploadFile = File(...)):
+async def predict_mold(file: UploadFile = File(...), location: Optional[str] = Form(None)):
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
     
     contents = await file.read()
     label, confidence = predict_image(contents)
     
+    weather_info = get_weather(location)
+    risk_status, risk_score = calculate_risk(confidence, weather_info)
+    
     return JSONResponse({
         "filename": file.filename,
         "prediction": label,
-        "confidence": f"{confidence*100:.2f}%"
+        "confidence": confidence,
+        "confidence_display": f"{confidence*100:.2f}%",
+        "risk_status": risk_status,
+        "weather": weather_info,
+        "risk_score": risk_score,
+        "message": f"Risk assessment complete. Mold: {label} ({confidence*100:.2f}%), Risk: {risk_status}"
     })
 
 if __name__ == "__main__":
