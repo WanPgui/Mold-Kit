@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import numpy as np
 from PIL import Image
@@ -7,6 +8,14 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 
 app = FastAPI(title="Mold Detection API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Load model
 MODEL_PATH = "models/mold_model_final.keras"
