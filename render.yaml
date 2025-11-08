@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: mold-prediction-tool
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    envVars:
+      - key: SECRET_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: UPLOAD_FOLDER
+        value: uploads
