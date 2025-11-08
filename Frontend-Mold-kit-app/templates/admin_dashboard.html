@@ -1,0 +1,231 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% if session.get('role') == 'admin' %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h3 class="mb-0">Admin Dashboard</h3>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-sm btn-outline-success" href="{{ url_for('admin_download_csv') }}">
+            <i class="bi bi-download"></i> Download CSV
+        </a>
+        <form method="post" action="{{ url_for('admin_retrain') }}" style="display:inline;">
+            <button class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-arrow-repeat"></i> Request Retrain
+            </button>
+        </form>
+        <a class="btn btn-sm btn-outline-info" href="{{ url_for('analytics') }}">
+            <i class="bi bi-bar-chart-line"></i> Analytics
+        </a>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin_users') }}">
+            <i class="bi bi-people"></i> Manage Users
+        </a>
+        <button class="btn btn-sm btn-outline-primary" id="filterBtn">
+            <i class="bi bi-funnel"></i> Filter Records
+        </button>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="card-body">
+                <h6>Total Uploads</h6>
+                <span class="badge bg-primary fs-5">{{ metrics.total }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="card-body">
+                <h6>Clean</h6>
+                <span class="badge bg-success fs-5">{{ metrics.clean }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="card-body">
+                <h6>Mold</h6>
+                <span class="badge bg-danger fs-5">{{ metrics.mold }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="card-body">
+                <h6>Verified</h6>
+                <span class="badge bg-warning text-dark fs-5">{{ metrics.verified }}</span>
+            </div>
+        </div>
+    </div>
+    {% if metrics.accuracy is not none %}
+    <div class="col-sm-6 col-md-3">
+        <div class="card shadow-sm text-center p-2">
+            <div class="card-body">
+                <h6>Accuracy</h6>
+                <span class="badge bg-info text-dark fs-5">{{ metrics.accuracy }}%</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Filter Panel -->
+<div id="filterPanel" class="card p-3 mb-3 shadow-sm" style="display:none;">
+    <h6><i class="bi bi-funnel-fill"></i> Filter Records</h6>
+    <form method="get" class="row g-2">
+        <div class="col-md-3">
+            <label class="form-label">Prediction</label>
+            <select name="pred" class="form-select">
+                <option value="">All</option>
+                <option value="clean">Clean</option>
+                <option value="mold">Mold</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Verified</label>
+            <select name="verified" class="form-select">
+                <option value="">All</option>
+                <option value="1">Yes</option>
+                <option value="0">No</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Date From</label>
+            <input type="date" name="date_from" class="form-control">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Date To</label>
+            <input type="date" name="date_to" class="form-control">
+        </div>
+        <div class="col-12 mt-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Table -->
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle" id="adminTable">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Preview</th>
+                <th>Filename</th>
+                <th>Prediction</th>
+                <th>Confidence</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr data-bs-toggle="collapse" data-bs-target="#details{{ row[0] }}" class="clickable">
+                <td>{{ row[0] }}</td>
+                <td>
+                    <a href="{{ url_for('uploaded_file', filename=row[1]) }}" target="_blank">
+                        <img src="{{ url_for('uploaded_file', filename=row[1]) }}" style="max-width:100px; border-radius:4px;">
+                    </a>
+                </td>
+                <td>{{ row[1] }}</td>
+                <td>
+                    {% if row[3] == 'mold' %}
+                    <span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill"></i> Mold</span>
+                    {% else %}
+                    <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Clean</span>
+                    {% endif %}
+                </td>
+                <td>{{ '%.2f'|format(row[4]*100) }}%</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#details{{ row[0] }}">
+                        <i class="bi bi-eye"></i> Details
+                    </button>
+                </td>
+            </tr>
+            <!-- Collapsible Row -->
+            <tr class="collapse bg-light" id="details{{ row[0] }}">
+                <td colspan="6">
+                    <div class="row g-3 p-3">
+                        <!-- Grad-CAM -->
+                        <div class="col-md-3 text-center">
+                            <h6>Grad-CAM</h6>
+                            <img src="{{ url_for('static', filename='gradcam/' + row[1] + '.jpg') }}" 
+                                 class="img-fluid rounded shadow-sm" 
+                                 alt="Grad-CAM" onerror="this.style.display='none'">
+                        </div>
+
+                        <!-- Environmental / Risk Panel -->
+                        <div class="col-md-9">
+                            <h6>Environmental Overview</h6>
+                            <div class="small">
+                                <strong>Temperature:</strong> {{ row[8].temperature }}°C<br>
+                                <strong>Humidity:</strong> {{ row[8].humidity }}%<br>
+                                <strong>Ventilation:</strong> {{ row[8].ventilation }}<br>
+                                <strong>Leaks:</strong> {{ row[8].leaks }}<br>
+                                <strong>Symptoms:</strong> {{ row[8].symptoms or 'None' }}
+                            </div>
+                            <div class="mt-2">
+                                {% if row[8].final_status == 'high' %}
+                                    <span class="badge bg-danger w-100 text-center">High Risk 🔴</span>
+                                {% elif row[8].final_status == 'medium' %}
+                                    <span class="badge bg-warning w-100 text-center">Medium Risk 🟡</span>
+                                {% else %}
+                                    <span class="badge bg-success w-100 text-center">Low Risk 🟢</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Feedback -->
+                            <h6 class="mt-3">Feedback</h6>
+                            {% if row[7] is defined and row[7]|length > 0 %}
+                                {% for fb in row[7] %}
+                                    <div class="border rounded p-1 mb-1 small">
+                                        <strong>{{ fb.feedback|capitalize }}</strong>{% if fb.comment %}: {{ fb.comment }}{% endif %}
+                                        <div class="text-muted">{{ fb.submitted_at[:19] }}</div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted small">No feedback</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- JS for filter panel toggle -->
+<script>
+document.getElementById('filterBtn').addEventListener('click', () => {
+    const panel = document.getElementById('filterPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+</script>
+
+<!-- DataTables Integration -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#adminTable').DataTable({
+        order: [[0, 'desc']],
+        pageLength: 10
+    });
+});
+</script>
+
+{% else %}
+<div class="alert alert-danger mt-5 text-center shadow-sm p-4">
+    <h4><i class="bi bi-lock-fill"></i> Access Denied</h4>
+    <p>You must be an administrator to access this page.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary mt-2">Return Home</a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,257 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+
+  <!-- Left: Upload + Result -->
+  <div class="col-lg-6 mb-4">
+    <div class="card shadow-sm p-4 text-center animate__animated animate__fadeInLeft">
+      <h4 class="card-title mb-3 text-primary">🧱 Check Wall for Mold Risk</h4>
+      <p class="text-muted small mb-3">
+        Upload a clear photo of your wall — our system combines image analysis with environmental data to predict whether mold is likely present or may develop soon.
+      </p>
+      <p class="text-muted small mb-3">
+        Accurate submissions help improve predictions. Ensure good lighting and avoid reflections or shadows. Supported formats: <strong>JPEG, PNG</strong>, up to 10MB.
+      </p>
+
+      {% if session.get('user_id') %}
+      <form method="post" action="{{ url_for('predict') }}" enctype="multipart/form-data" id="uploadForm">
+        <!-- Upload Zone -->
+        <div id="dropZone" class="border border-2 rounded p-4 mb-3 bg-body-tertiary text-muted hover-effect">
+          <i class="bi bi-cloud-upload fs-1"></i><br>
+          Drag & Drop or Click to Upload
+          <input type="file" name="file" id="fileInput" accept="image/*" required hidden>
+        </div>
+
+        <!-- Preview -->
+        <div id="previewContainer" class="mb-3" style="display:none;">
+          <img id="previewImage" class="img-fluid rounded shadow-sm animate__animated animate__fadeIn" alt="Preview">
+        </div>
+
+        <!-- Dynamic Environmental Factors -->
+        <div id="environmentSection" class="mt-4 text-start collapse-section">
+          <h6 class="text-secondary mb-3">🌡️ Environment Information</h6>
+          <p class="text-muted small mb-2">
+            Provide details about the wall environment. These factors improve prediction accuracy.
+          </p>
+
+          <div class="mb-2">
+            <input type="text" class="form-control" name="location" placeholder="Enter location (e.g., Kigali)">
+          </div>
+
+          <div class="form-floating mb-2">
+            <select class="form-select" name="ventilation">
+              <option value="good">Good</option>
+              <option value="moderate">Moderate</option>
+              <option value="poor">Poor</option>
+            </select>
+            <label>Ventilation quality</label>
+          </div>
+
+          <div class="form-floating mb-2">
+            <select class="form-select" name="structure">
+              <option value="concrete">Concrete</option>
+              <option value="wood">Wood</option>
+              <option value="mixed">Mixed</option>
+            </select>
+            <label>Wall structure type</label>
+          </div>
+
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="leak" value="yes" id="leak">
+            <label class="form-check-label" for="leak">Visible leaks or water stains</label>
+          </div>
+
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="health" value="yes" id="health">
+            <label class="form-check-label" for="health">Health symptoms (cough, allergies)</label>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div id="progressContainer" class="mb-3" style="display:none;">
+          <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="uploadProgress" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="d-grid gap-2 mt-3">
+          <button class="btn btn-primary" id="uploadBtn">Upload & Predict</button>
+        </div>
+        <div class="text-muted small mt-2">
+          Your submission is logged for verification. Results will appear on the results page.
+        </div>
+      </form>
+      {% else %}
+      <div class="alert alert-warning">
+        <strong>Login required:</strong> Please <a href="{{ url_for('login') }}">log in</a> or <a href="{{ url_for('register') }}">create an account</a> to upload images and predict mold.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right: Dashboard & Recent -->
+  <div class="col-lg-6 mb-4">
+    <div class="card shadow-sm p-4 mb-4 animate__animated animate__fadeInRight">
+      <h5 class="text-success mb-3">📊 System Overview</h5>
+      <ul class="list-group mb-3">
+        <li class="list-group-item d-flex justify-content-between align-items-center bg-body-secondary">
+          Total Images Processed
+          <span class="badge bg-primary rounded-pill">{{ metrics.total if metrics else 0 }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center bg-body-secondary">
+          Predicted Mold
+          <span class="badge bg-danger rounded-pill">{{ metrics.mold if metrics else 0 }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center bg-body-secondary">
+          Predicted Clean
+          <span class="badge bg-success rounded-pill">{{ metrics.clean if metrics else 0 }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center bg-body-secondary">
+          Verified Accuracy
+          <span class="badge bg-info rounded-pill">{{ metrics.accuracy if metrics else 0 }}%</span>
+        </li>
+      </ul>
+
+      {% if session.get('is_admin') %}
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary w-100" target="_blank">Go to Admin Dashboard</a>
+      {% endif %}
+    </div>
+
+    <div class="card shadow-sm p-3 animate__animated animate__fadeInRight">
+      <h6 class="text-secondary">🕓 Recent Predictions</h6>
+      {% if recent %}
+      <ul class="list-group list-group-flush small">
+        {% for r in recent %}
+        <li class="list-group-item d-flex align-items-center justify-content-between hover-effect bg-body-tertiary">
+          <div class="d-flex align-items-center">
+            <img src="{{ url_for('uploaded_file', filename=r['filename']) }}" alt="thumb" style="width:50px;height:50px;object-fit:cover;" class="rounded me-2">
+            <a href="{{ url_for('result_page', filename=r['filename']) }}" class="link-primary">{{ r['prediction']|capitalize }}</a>
+          </div>
+          <span class="text-muted small">{{ r['uploaded'][:16] }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted small mb-0">No predictions yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if session.get('user_id') %}
+<script>
+const dropZone = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
+const previewImage = document.getElementById("previewImage");
+const previewContainer = document.getElementById("previewContainer");
+const progressContainer = document.getElementById("progressContainer");
+const uploadProgress = document.getElementById("uploadProgress");
+const uploadForm = document.getElementById("uploadForm");
+const environmentSection = document.getElementById("environmentSection");
+
+dropZone.addEventListener("click", () => fileInput.click());
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("bg-primary", "text-white"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("bg-primary", "text-white"));
+dropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    fileInput.files = e.dataTransfer.files;
+    showPreview();
+    dropZone.classList.remove("bg-primary", "text-white");
+});
+fileInput.addEventListener("change", showPreview);
+
+function showPreview() {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        previewImage.src = e.target.result;
+        previewContainer.style.display = "block";
+        environmentSection.style.maxHeight = "0";
+        environmentSection.style.display = "block";
+        setTimeout(() => environmentSection.style.maxHeight = environmentSection.scrollHeight + "px", 50);
+        previewImage.classList.add("animate__fadeIn");
+    };
+    reader.readAsDataURL(file);
+}
+
+uploadForm.addEventListener("submit", e => {
+    e.preventDefault();
+    if (!fileInput.files.length) return;
+
+    progressContainer.style.display = "block";
+    uploadProgress.style.width = "0%";
+
+    const formData = new FormData(uploadForm);
+
+    fetch("https://mold-kit.onrender.com/predict", { 
+        method: "POST", 
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        let width = 0;
+        const interval = setInterval(() => {
+            width += 10;
+            uploadProgress.style.width = width + "%";
+            if (width >= 100) clearInterval(interval);
+        }, 50);
+
+        setTimeout(() => {
+            // Display results directly or redirect to result page
+            displayResults(data);
+        }, 700);
+    })
+    .catch(err => {
+        alert("Error uploading image: " + err);
+        progressContainer.style.display = "none";
+    });
+});
+
+function displayResults(data) {
+    const resultsHtml = `
+        <div class="alert alert-${data.risk_status === 'high' ? 'danger' : data.risk_status === 'moderate' ? 'warning' : 'success'}" role="alert">
+            <h5><i class="bi bi-${data.prediction === 'mold' ? 'exclamation-triangle' : 'check-circle'}"></i> ${data.prediction.toUpperCase()} Detected</h5>
+            <p><strong>Confidence:</strong> ${data.confidence_display}</p>
+            <p><strong>Risk Level:</strong> ${data.risk_status.toUpperCase()}</p>
+            <p><strong>Weather:</strong> ${data.weather}</p>
+            <p><strong>Risk Score:</strong> ${data.risk_score}/7</p>
+            <hr>
+            <p class="mb-0">${data.message}</p>
+        </div>
+    `;
+    
+    const form = document.getElementById('uploadForm');
+    const existingResults = document.getElementById('results');
+    if (existingResults) existingResults.remove();
+    
+    const resultsDiv = document.createElement('div');
+    resultsDiv.id = 'results';
+    resultsDiv.innerHTML = resultsHtml;
+    form.parentNode.insertBefore(resultsDiv, form.nextSibling);
+    
+    progressContainer.style.display = "none";
+}
+</script>
+{% endif %}
+
+<style>
+.hover-effect:hover {
+  transform: translateY(-3px);
+  transition: transform 0.3s;
+}
+.bg-body-tertiary {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+.collapse-section {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.6s ease;
+}
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+{% endblock %}

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title if title else "Mold Prediction Kit" }}</title>
+
+    <!-- Meta -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Bootstrap & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        :root {
+            --light-bg: #ffffff;
+            --light-text: #212529;
+            --dark-bg: #121212;
+            --dark-text: #f5f5f5;
+            --dark-card: #1e1e1e;
+            --light-card: #f8f9fa;
+        }
+
+        body {
+            transition: background-color 0.3s, color 0.3s;
+            background-color: var(--light-bg);
+            color: var(--light-text);
+        }
+
+        nav.navbar {
+            background-color: var(--bs-primary);
+            padding: 0.8rem 1.2rem;
+        }
+
+        nav .navbar-brand {
+            font-weight: bold;
+            color: #fff;
+            display: flex;
+            align-items: center;
+        }
+
+        nav .navbar-brand i {
+            margin-right: 8px;
+        }
+
+        nav .nav-link {
+            color: #f8f9fa !important;
+        }
+
+        nav .nav-link:hover {
+            color: #ffc107 !important;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            color: white;
+        }
+
+        /* ----------------------
+           Floating Mold Spore Background (3D Depth)
+        ---------------------- */
+        #mold-spores {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; 
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .mold-spore {
+            position: absolute;
+            opacity: 0;
+            will-change: transform, opacity;
+            filter: drop-shadow(0 0 2px rgba(0,0,0,0.2));
+        }
+
+        main, nav, footer {
+            position: relative;
+            z-index: 1;
+        }
+
+        footer {
+            background: var(--light-card);
+            padding: 1rem 0;
+            margin-top: 40px;
+            border-top: 1px solid #ddd;
+            color: var(--light-text);
+        }
+
+        .card, .alert, .badge, .btn {
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .dark-mode {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+        }
+
+        .dark-mode nav.navbar {
+            background-color: #2b2b2b !important;
+        }
+
+        .dark-mode footer {
+            background-color: #1c1c1c;
+            color: #ccc;
+            border-color: #333;
+        }
+
+        .dark-mode .card {
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            border-color: #444;
+        }
+
+        .dark-mode .alert {
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        .dark-mode .table {
+            color: #e0e0e0;
+        }
+
+        .dark-mode .table thead {
+            background-color: #333;
+        }
+
+        .badge-notify {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.65rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Floating spores background -->
+    <div id="mold-spores"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/" target="_self">
+                <i class="bi bi-droplet-half"></i> Mold Prediction Kit
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/" target="_self">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/predict" target="_self">Predict</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/result" target="_self">Result</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/profile" target="_self">Profile</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/profile_settings" target="_self">Profile Settings</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/register" target="_self">Register</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about" target="_self">About Us</a></li>
+                    {% if session.is_admin %}
+                        <li class="nav-item"><a class="nav-link" href="/admin/dashboard" target="_self">Admin Dashboard</a></li>
+                    {% endif %}
+                </ul>
+
+                <ul class="navbar-nav ms-auto">
+                    <!-- Notifications -->
+                    <li class="nav-item dropdown me-3 position-relative">
+                        <a class="nav-link dropdown-toggle" href="#" id="notifDropdown" data-bs-toggle="dropdown">
+                            <i class="bi bi-bell"></i>
+                            {% if notifications and notifications|length > 0 %}
+                                <span class="badge bg-danger rounded-pill badge-notify">{{ notifications|length }}</span>
+                            {% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            {% if notifications %}
+                                {% for n in notifications %}
+                                    <li><a class="dropdown-item small" href="#" target="_blank">{{ n }}</a></li>
+                                {% endfor %}
+                            {% else %}
+                                <li><span class="dropdown-item text-muted small">No notifications</span></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+
+                    <!-- User dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userMenu" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> Account
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile" target="_self"><i class="bi bi-person"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="/profile_settings" target="_self"><i class="bi bi-gear"></i> Profile Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="/logout" target="_self"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Theme toggle -->
+                    <li class="nav-item ms-3">
+                        <i class="bi bi-sun-fill theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode"></i>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mt-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center small">
+        <div>© 2025 Mold Prediction Kit | Built with ❤️ using Flask, TensorFlow & Bootstrap</div>
+        <div class="mt-1">
+            <a href="/privacy" class="text-decoration-none me-2" target="_self">Privacy Policy</a> |
+            <a href="/contact" class="text-decoration-none ms-2" target="_self">Contact</a>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const body = document.body;
+        const toggle = document.getElementById('themeToggle');
+
+        // Load theme
+        if (localStorage.getItem('theme') === 'dark') {
+            body.classList.add('dark-mode');
+            toggle.classList.replace('bi-sun-fill', 'bi-moon-fill');
+        }
+
+        // Toggle theme
+        toggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            const isDark = body.classList.contains('dark-mode');
+            toggle.classList.toggle('bi-moon-fill', isDark);
+            toggle.classList.toggle('bi-sun-fill', !isDark);
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+
+        // -----------------------
+        // Floating Mold Spores with Depth
+        // -----------------------
+        const sporeImages = [
+            "{{ url_for('static', filename='images/mold1.png') }}",
+            "{{ url_for('static', filename='images/mold2.png') }}",
+            "{{ url_for('static', filename='images/mold3.png') }}"
+        ];
+
+        const moldContainer = document.getElementById('mold-spores');
+        const NUM_SPORES = 30;
+
+        function random(min, max) { return Math.random() * (max - min) + min; }
+
+        function createSpore() {
+            const img = document.createElement('img');
+            img.src = sporeImages[Math.floor(random(0, sporeImages.length))];
+            img.className = 'mold-spore';
+
+            // Depth effect
+            const depth = random(0.3, 1); // 0.3 = far, 1 = close
+            img.dataset.depth = depth;
+            img.style.width = 40 + depth * 80 + 'px'; // size proportional to depth
+            img.style.opacity = 0.05 + depth * 0.1; // closer = more visible
+            img.style.left = random(0, 100) + 'vw';
+            img.style.top = random(0, 100) + 'vh';
+            img.style.zIndex = Math.floor(depth * 100);
+
+            moldContainer.appendChild(img);
+            animateSpore(img, depth);
+        }
+
+        function animateSpore(spore, depth) {
+            const driftX = random(-20, 20) * depth;
+            const driftY = -random(30, 100) * depth; // upward
+            const duration = random(20000, 60000) / depth; // closer = faster
+
+            spore.animate([
+                { transform: 'translate(0,0) rotate(0deg)' },
+                { transform: `translate(${driftX}vw, ${driftY}vh) rotate(${random(-20,20)}deg)` }
+            ], {
+                duration: duration,
+                iterations: Infinity,
+                direction: 'alternate',
+                easing: 'ease-in-out'
+            });
+
+            // Gentle sway
+            spore.animate([
+                { transform: 'translateX(0) rotate(0deg)' },
+                { transform: 'translateX(5px) rotate(2deg)' },
+                { transform: 'translateX(-5px) rotate(-2deg)' },
+                { transform: 'translateX(0) rotate(0deg)' }
+            ], {
+                duration: random(5000, 12000),
+                iterations: Infinity,
+                easing: 'ease-in-out'
+            });
+
+            // Fade in/out
+            spore.animate([
+                { opacity: 0 },
+                { opacity: parseFloat(spore.style.opacity) },
+                { opacity: 0 }
+            ], {
+                duration: duration,
+                iterations: Infinity,
+                easing: 'ease-in-out'
+            });
+        }
+
+        for(let i=0; i<NUM_SPORES; i++) createSpore();
+    </script>
+</body>
+</html>

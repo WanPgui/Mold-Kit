@@ -1,0 +1,263 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- Custom CSS for this page -->
+<style>
+  body {
+    scroll-behavior: smooth;
+  }
+
+  /* === MAIN NAV === */
+  .main-nav {
+    position: fixed;
+    top: 70px; /* below Flask navbar */
+    width: 100%;
+    z-index: 1050;
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    padding: 12px 20px;
+    background: #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .main-nav a {
+    text-decoration: none;
+    color: #1a73e8;
+    font-weight: 500;
+    transition: color 0.3s;
+  }
+
+  .main-nav a:hover {
+    color: #0f5dc1;
+  }
+
+  /* === HEADER === */
+  header {
+    background: linear-gradient(90deg, #1a73e8, #3b8beb);
+    color: white;
+    text-align: center;
+    padding: 120px 20px 60px;
+    animation: fadeInDown 1.2s ease;
+    margin-top: 65px;
+  }
+
+  header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+  }
+
+  /* === SECTIONS === */
+  section {
+    max-width: 1000px;
+    margin: 80px auto;
+    padding: 40px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transform: translateY(50px);
+    transition: all 0.8s ease-out;
+  }
+
+  section.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  section h2 {
+    text-align: center;
+    color: #1a73e8;
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    margin-top: 25px;
+  }
+
+  .fact {
+    background: #f1f5fb;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.3s;
+  }
+
+  .fact:hover {
+    transform: translateY(-5px);
+  }
+
+  .fact i {
+    font-size: 35px;
+    color: #1a73e8;
+    margin-bottom: 10px;
+  }
+
+  /* === SCROLL TO TOP BUTTON === */
+  #scrollTopBtn {
+    display: none;
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    z-index: 2000;
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    padding: 15px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: opacity 0.4s, transform 0.4s;
+  }
+
+  #scrollTopBtn.show {
+    display: block;
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* === LOGGED IN INFO === */
+  .user-info {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    color: #1a73e8;
+    font-weight: 500;
+  }
+</style>
+
+<!-- USER / ADMIN INFO -->
+<div class="user-info">
+  {% if session.get('email') %}
+    Logged in as {{ session.get('email') }} 
+    {% if session.get('role') == 'admin' %}(Admin){% endif %}
+    | <a href="{{ url_for('logout') }}">Logout</a>
+  {% else %}
+    <a href="{{ url_for('login') }}">Login</a> | 
+    <a href="{{ url_for('register') }}">Register</a>
+  {% endif %}
+</div>
+
+<!-- HEADER -->
+<header id="top">
+  <h1>Black Mold Awareness & Detection</h1>
+  <p>Learn about black mold, its health effects, and how our system helps detect it early.</p>
+</header>
+
+<!-- SECTIONS -->
+<section id="about">
+  <h2>Understanding Mold</h2>
+  <p>
+    Mold is a type of fungus that grows in moist and humid environments. Black mold, also known as
+    <em>Stachybotrys chartarum</em>, can produce toxins that are harmful to humans and animals.
+  </p>
+  <div class="facts">
+    <div class="fact">
+      <i class="fas fa-microscope"></i>
+      <h3>What Causes Mold?</h3>
+      <p>Moisture, humidity, and poor ventilation create ideal growth conditions.</p>
+    </div>
+    <div class="fact">
+      <i class="fas fa-water"></i>
+      <h3>Common Signs</h3>
+      <p>Musty odors, discoloration on walls, and breathing issues are key indicators.</p>
+    </div>
+    <div class="fact">
+      <i class="fas fa-exclamation-circle"></i>
+      <h3>Why It Matters</h3>
+      <p>Unchecked mold can damage structures and cause health complications.</p>
+    </div>
+  </div>
+</section>
+
+<section id="health">
+  <h2>Health Risks of Mold Exposure</h2>
+  <div class="facts">
+    <div class="fact">
+      <i class="fas fa-lungs"></i>
+      <h3>Respiratory Issues</h3>
+      <p>Mold spores can trigger asthma, coughing, and difficulty breathing.</p>
+    </div>
+    <div class="fact">
+      <i class="fas fa-head-side-virus"></i>
+      <h3>Allergic Reactions</h3>
+      <p>Sneezing, itchy eyes, and rashes are common symptoms of exposure.</p>
+    </div>
+    <div class="fact">
+      <i class="fas fa-brain"></i>
+      <h3>Neurological Effects</h3>
+      <p>Prolonged exposure may cause headaches, dizziness, or memory issues.</p>
+    </div>
+  </div>
+</section>
+
+<section id="prevention">
+  <h2>Preventing Mold Growth</h2>
+  <div class="facts">
+    <div class="fact">
+      <i class="fas fa-fan"></i>
+      <h3>Improve Ventilation</h3>
+      <p>Ensure proper airflow in bathrooms, kitchens, and basements.</p>
+    </div>
+    <div class="fact">
+      <i class="fas fa-broom"></i>
+      <h3>Regular Cleaning</h3>
+      <p>Clean damp areas frequently to prevent mold buildup.</p>
+    </div>
+    <div class="fact">
+      <i class="fas fa-tint-slash"></i>
+      <h3>Fix Leaks</h3>
+      <p>Repair roof or pipe leaks quickly to avoid moisture accumulation.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SCROLL TO TOP BUTTON -->
+<button id="scrollTopBtn" onclick="scrollToTop()">
+  <i class="fas fa-arrow-up"></i>
+</button>
+
+<!-- JAVASCRIPT -->
+<script>
+  const sections = document.querySelectorAll("section");
+  const revealSections = () => {
+    sections.forEach((sec) => {
+      const rect = sec.getBoundingClientRect();
+      if (rect.top < window.innerHeight - 100) {
+        sec.classList.add("visible");
+      }
+    });
+  };
+  window.addEventListener("scroll", revealSections);
+  revealSections();
+
+  const scrollTopBtn = document.getElementById("scrollTopBtn");
+  window.onscroll = function () {
+    if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+      scrollTopBtn.classList.add("show");
+    } else {
+      scrollTopBtn.classList.remove("show");
+    }
+  };
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+</script>
+
+<!-- Font Awesome -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+{% endblock %}

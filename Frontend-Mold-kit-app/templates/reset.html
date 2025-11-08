@@ -1,0 +1,35 @@
+@app.route("/reset/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    conn = get_db_conn()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT user_id, expires_at FROM password_resets WHERE token=?", (token,))
+    row = cursor.fetchone()
+    if not row or datetime.utcnow() > datetime.strptime(row["expires_at"], "%Y-%m-%d %H:%M:%S"):
+        flash("Invalid or expired token.", "danger")
+        conn.close()
+        return redirect(url_for("forgot_password"))
+
+    user_id = row["user_id"]
+
+    if request.method == "POST":
+        new_pw = request.form.get("new_password", "")
+        confirm = request.form.get("confirm", "")
+        if not new_pw or new_pw != confirm:
+            flash("Passwords missing or do not match.", "warning")
+            return redirect(url_for("reset_password", token=token))
+
+        cursor.execute(
+            "UPDATE users SET password_hash=? WHERE id=?",
+            (generate_password_hash(new_pw), user_id)
+        )
+        # Delete the token after use
+        cursor.execute("DELETE FROM password_resets WHERE token=?", (token,))
+        conn.commit()
+        conn.close()
+
+        flash("Password reset successfully! Please log in.", "success")
+        return redirect(url_for("login"))
+
+    conn.close()
+    return render_template("reset.html", token=token)

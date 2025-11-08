@@ -1,0 +1,30 @@
+@app.route("/forgot", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        user = get_user_by_email(email)
+        if not user:
+            flash("If that email exists, a reset link was sent.", "info")
+            return redirect(url_for("login"))
+
+        # Generate a secure token and store it with expiration
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(hours=1)
+        
+        conn = get_db_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO password_resets (user_id, token, expires_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET token=?, expires_at=?
+        """, (user["id"], token, expires_at, token, expires_at))
+        conn.commit()
+        conn.close()
+
+        # TODO: Send email with link like: url_for('reset_password', token=token, _external=True)
+        print(f"[DEBUG] Reset link for {email}: {url_for('reset_password', token=token, _external=True)}")
+
+        flash("Password reset link sent to your email (check console for now).", "info")
+        return redirect(url_for("login"))
+
+    return render_template("forgot.html")

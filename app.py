@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, status, Form
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 import os
@@ -15,6 +16,15 @@ app = FastAPI(
     title="Mold Detection API",
     description="AI-powered mold detection service",
     version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Configuration

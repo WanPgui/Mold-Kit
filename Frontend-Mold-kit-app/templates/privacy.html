@@ -1,0 +1,154 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-4">
+        <h1 class="fw-bold text-primary"><i class="bi bi-shield-lock"></i> Privacy Policy</h1>
+        <p class="text-muted">Your privacy matters to us. This page explains how we collect, use, and protect your data.</p>
+    </div>
+
+    <div class="card shadow-sm p-4 border-0">
+        <p><strong>Last Updated:</strong> October 30, 2025</p>
+
+        <div class="accordion" id="privacyAccordion">
+
+            <!-- 1. Data Collection -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingOne">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                        <i class="bi bi-database-lock me-2"></i> 1. Information We Collect
+                    </button>
+                </h2>
+                <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#privacyAccordion">
+                    <div class="accordion-body">
+                        We collect personal and analytical information to improve our services:
+                        <ul>
+                            <li>Personal details (email, name, role) when you register an account.</li>
+                            <li>Image uploads used for mold prediction analysis.</li>
+                            <li>Device, browser, and log data for performance monitoring.</li>
+                            <li>Cookies and usage analytics for UI/UX improvement.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Data Usage -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingTwo">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                        <i class="bi bi-gear me-2"></i> 2. How We Use Your Information
+                    </button>
+                </h2>
+                <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                    <div class="accordion-body">
+                        <ul>
+                            <li>To analyze mold predictions using machine learning algorithms.</li>
+                            <li>To personalize your experience and improve app functionality.</li>
+                            <li>To contact you about updates, security alerts, or changes in policy.</li>
+                            <li>To monitor and protect the security of our platform.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Data Protection -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingThree">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                        <i class="bi bi-lock-fill me-2"></i> 3. How We Protect Your Data
+                    </button>
+                </h2>
+                <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                    <div class="accordion-body">
+                        <ul>
+                            <li>We use <strong>encryption</strong> for all stored and transmitted data.</li>
+                            <li>Passwords are stored using secure one-way hashing.</li>
+                            <li>Access to sensitive data is restricted to authorized personnel only.</li>
+                            <li>Regular vulnerability scans and penetration testing are performed.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Cookies -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingFour">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
+                        <i class="bi bi-cookie me-2"></i> 4. Cookies & Tracking Technologies
+                    </button>
+                </h2>
+                <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                    <div class="accordion-body">
+                        We use cookies to:
+                        <ul>
+                            <li>Remember your login preferences.</li>
+                            <li>Enable dark/light mode persistence.</li>
+                            <li>Analyze user behavior to enhance performance.</li>
+                        </ul>
+                        <p>You can disable cookies in your browser settings, but some features may stop working properly.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Your Rights -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingFive">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive">
+                        <i class="bi bi-person-check me-2"></i> 5. Your Rights
+                    </button>
+                </h2>
+                <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                    <div class="accordion-body">
+                        You have full control over your data:
+                        <ul>
+                            <li>Request a copy of your stored data.</li>
+                            <li>Request correction or deletion of inaccurate data.</li>
+                            <li>Withdraw consent at any time.</li>
+                            <li>Opt-out of email communications and newsletters.</li>
+                        </ul>
+                        <p>To exercise your rights, email us at <a href="mailto:support@moldkit.com">support@moldkit.com</a>.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Third-Party Services -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingSix">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix">
+                        <i class="bi bi-globe me-2"></i> 6. Third-Party Services
+                    </button>
+                </h2>
+                <div id="collapseSix" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                    <div class="accordion-body">
+                        We may use third-party analytics or cloud services like TensorFlow Cloud, AWS, or Google Analytics.  
+                        Each third-party provider has its own privacy policy governing their data use.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. Changes -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingSeven">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven">
+                        <i class="bi bi-clock-history me-2"></i> 7. Changes to This Policy
+                    </button>
+                </h2>
+                <div id="collapseSeven" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                    <div class="accordion-body">
+                        We may update this policy periodically.  
+                        Significant changes will be communicated via email or a site notification banner.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5 text-center">
+            <p class="text-muted small">
+                By using Mold Prediction Kit, you agree to this Privacy Policy and our Terms of Service.
+            </p>
+            <a href="{{ url_for('contact') }}" class="btn btn-outline-primary">
+                <i class="bi bi-envelope"></i> Contact Us
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

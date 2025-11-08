@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm p-4 border-0">
+        <h2 class="fw-bold mb-3"><i class="bi bi-info-circle"></i> About Us</h2>
+        <hr>
+
+        <p>
+          Welcome to <strong>MoldDetect</strong>, a web platform dedicated to helping homeowners,
+          tenants, and building managers identify potential mold growth in indoor environments.
+          Mold can pose serious health risks, especially for children, elderly, and individuals
+          with respiratory issues.
+        </p>
+
+        <h5 class="mt-4">Our Mission</h5>
+        <p>
+          We aim to provide a quick, reliable, and accessible tool for assessing indoor air
+          quality risks using advanced image analysis techniques. Our platform uses a
+          combination of computer vision models and explainable AI to help you detect areas
+          where mold may be present in your home.
+        </p>
+
+        <h5 class="mt-4">How It Works</h5>
+        <ul>
+          <li>Create an account or Sign In to Upload a photo of the area you want to inspect.</li>
+          <li>Our model analyzes the image to determine the likelihood of mold growth.</li>
+          <li>Receive a clear, color-coded result with confidence levels and health advisories.</li>
+          <li>View a heatmap to understand where the model detected potential mold patterns.</li>
+        </ul>
+
+        <h5 class="mt-4">Why It Matters</h5>
+        <p>
+          Early detection of mold can prevent serious health issues and costly repairs.
+          By making mold detection easier and more interactive, we hope to empower users
+          to take proactive measures in keeping their homes safe and healthy.
+        </p>
+
+        <h5 class="mt-4">Get Involved</h5>
+        <p>
+          Users can provide feedback on predictions to help improve the model, track their
+          upload history, and stay informed about indoor safety. Administrators can manage
+          users, retrain models, and monitor analytics to ensure accuracy and reliability.
+        </p>
+
+        <div class="text-center mt-4">
+          <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="bi bi-house-door"></i> Go Back Home
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
