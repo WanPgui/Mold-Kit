@@ -4,6 +4,10 @@ from fastapi.responses import JSONResponse
 import os
 from typing import Optional
 import uvicorn
+from PIL import Image
+import numpy as np
+import tensorflow as tf
+from io import BytesIO
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -15,6 +19,18 @@ app = FastAPI(
 # Configuration
 ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp'}
 MAX_FILE_SIZE = 8 * 1024 * 1024  # 8MB
+MODEL_PATH = "models/mold_model_final.keras"
+
+# Load model
+MODEL = None
+if os.path.exists(MODEL_PATH):
+    try:
+        MODEL = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        print(f"Model loaded from {MODEL_PATH}")
+    except Exception as e:
+        print(f"Error loading model: {e}")
+else:
+    print(f"Model file not found at {MODEL_PATH}")
 
 # Response models
 class PredictionResponse(BaseModel):
@@ -35,25 +51,33 @@ def allowed_file(filename: str) -> bool:
 
 def predict_mold(file_content: bytes, filename: str) -> tuple:
     """
-    Simple mold prediction based on file characteristics
+    Real mold prediction using ML model
     Returns: (label, confidence_float, confidence_display)
     """
     try:
-        # Simple heuristic based on file size and name
+        if MODEL is not None:
+            # Load and preprocess image
+            img = Image.open(BytesIO(file_content)).convert("RGB")
+            img = img.resize((224, 224), Image.Resampling.LANCZOS)
+            
+            # Convert to numpy array and normalize
+            arr = np.array(img, dtype=np.float32) / 255.0
+            arr = np.expand_dims(arr, axis=0)
+            
+            # Make prediction
+            pred = MODEL.predict(arr, verbose=0).flatten()
+            score = float(np.clip(pred[0], 0.0, 1.0))
+            
+            label = "mold" if score >= 0.5 else "clean"
+            confidence = score if label == "mold" else (1 - score)
+            confidence_display = f"{confidence * 100:.2f}%"
+            
+            return label, confidence, confidence_display
+        
+        # Fallback if model not loaded
         file_size = len(file_content)
-        
-        # Basic prediction logic (replace with actual ML model)
-        if 'mold' in filename.lower() or 'fungus' in filename.lower():
-            confidence = 0.85
-            label = "mold"
-        elif 'clean' in filename.lower() or 'normal' in filename.lower():
-            confidence = 0.90
-            label = "clean"
-        else:
-            # Use file size as a simple heuristic
-            confidence = min(0.75, file_size / (1024 * 1024) * 0.3 + 0.5)
-            label = "mold" if confidence > 0.6 else "clean"
-        
+        confidence = min(0.75, file_size / (1024 * 1024) * 0.3 + 0.5)
+        label = "mold" if confidence > 0.6 else "clean"
         confidence_display = f"{confidence * 100:.2f}%"
         return label, confidence, confidence_display
         
